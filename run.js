@@ -17,7 +17,6 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.commandName === 'kick-them-all') {
         verifyUser(interaction.member.id).then(async verified => {
-            console.log(verified);
             if (verified) {
                 kickEm(interaction);
             } else {
