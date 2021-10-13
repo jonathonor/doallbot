@@ -1,0 +1,7 @@
+{
+    "token": "BOT TOKEN HERE",
+    "clientId": "BOT CLIENT ID HERE",
+    "serverId": "INSERT SERVER ID HERE",
+    "allowedRoleId": "Role ID that is allowed to use the /kick-them-all command",
+    "logChannelId": "INSERT LOG CHANNEL ID HERE"
+}
