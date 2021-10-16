@@ -1,0 +1,22 @@
+[
+  {
+    "id": "240539870873911296",
+    "preferences": {
+      "auto-kick-new-accounts": false,
+      "auto-assign-roles": false,
+      "assignableRoles": [
+        {
+          "name": "test",
+          "id": "539301661890576395"
+        }
+      ]
+    }
+  },
+  {
+    "id": "524088329277276170",
+    "preferences": {
+      "auto-kick-new-accounts": false,
+      "auto-assign-roles": false
+    }
+  }
+]
