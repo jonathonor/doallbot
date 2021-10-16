@@ -4,7 +4,11 @@
   "description": "A discord bot that bans accounts that join that are less than a week old",
   "main": "run.js",
   "scripts": {
-    "test": "node run.js"
+    "test": "node run.js",
+    "start": "node run.js"
+  },
+  "engines": {
+    "node": "16.x"
   },
   "repository": {
     "type": "git",
@@ -22,11 +26,13 @@
   "bugs": {
     "url": "https://github.com/jonathonor/banbot/issues"
   },
+  "type": "module",
   "homepage": "https://github.com/jonathonor/banbot#readme",
   "dependencies": {
     "@discordjs/rest": "^0.1.0-canary.0",
     "axios": "^0.23.0",
     "discord-api-types": "^0.23.1",
-    "discord.js": "^13.2.0"
+    "discord.js": "^13.2.0",
+    "lowdb": "^3.0.0"
   }
 }

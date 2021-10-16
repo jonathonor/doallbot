@@ -1,101 +1,252 @@
 /*
-    banBot, a super simple bot that gives you the ability to ban new discord account 
-    until the account is older than one week old
+    doallbot, a bot that takes different actions on all members of a server
 */
 
-var config = require('./config.json')
-const { Client, Intents } = require('discord.js');
-const axios = require('axios');
-const client = new Client({ intents: [Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_BANS] });
+import { join, dirname } from "path";
+import { Low, JSONFile } from "lowdb";
+import { fileURLToPath } from "url";
 
-client.on('ready', () => {
-  console.log(`banbot ready!`);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const file = join(__dirname, "db.json");
+const adapter = new JSONFile(file);
+const db = new Low(adapter);
+
+let config = process.env;
+import { Client, Intents } from "discord.js";
+import axios from "axios";
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_BANS
+  ]
 });
 
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
+db.read();
 
-    if (interaction.commandName === 'kick-them-all') {
-        verifyUser(interaction.member.id).then(async verified => {
-            if (verified) {
-                kickEm(interaction);
-            } else {
-                respondToInteraction(interaction, `You dont have the necessary role to send that command ${interaction.user.username}`);
-            }
-        }); 
+db.data = db.data || [
+  {
+    id: "240539870873911296",
+    preferences: {
+      "auto-kick-new-accounts": false,
+      "auto-assign-roles": false
     }
+  }
+];
+
+client.on("ready", () => {
+  console.log(`doallbot ready!`);
 });
 
-// When a new user joins your server, check if the account is older than one week, if it isn't then ban them until their account is one week old.
-client.on('guildMemberAdd', async addedMember => {
-    var lastWeek = new Date();
-    var pastDate = lastWeek.getDate() - 7;
-    lastWeek.setDate(pastDate);
-    let timeToBan = (addedMember.user.createdTimestamp - lastWeek) / (1000*60*60*24);
+client.on("interactionCreate", async interaction => {
+  if (!interaction.isCommand()) return;
 
-    if (addedMember.user.createdTimestamp > lastWeek) {
-        addedMember.kick(`You're account is too new ${addedMember.user.username}, it must be one week old! Created at ${addedMember.user.createdAt}`);
-        let message = `Kicked new member ${addedMember.user.username} - account created: ${addedMember.user.createdAt}`;
-        console.log(message);
-        const logChannel = await addedMember.guild.channels.fetch(config.logChannelId);
-        logChannel.send(message);
-    }
-});
-
-kickEm = interaction => {
-    var lastWeek = new Date();
-    var pastDate = lastWeek.getDate() - 7;
-    lastWeek.setDate(pastDate);
-
-    let count = 0;
-
-    interaction.guild.members.fetch().then(members => {
-        for (const member of members.values()) {
-            if (member.user.createdTimestamp > lastWeek) {
-                count++;
-                member.kick(`You're account is too new ${member.user.username}, it must be one week old! Created at ${member.user.createdAt}`);
-                console.log(`Kicking ${member.user.username} - account created: ${member.user.createdAt}`);
-            }
+  if (verifyUser(interaction)) {
+    let p =
+      db.data.find(a => a.id === interaction.guildId) &&
+      db.data.find(a => a.id === interaction.guildId).preferences;
+    if (!p) {
+      db.data.push({
+        id: interaction.guild.id,
+        preferences: {
+          "auto-kick-new-accounts": false,
+          "auto-assign-roles": false
         }
-        respondToInteraction(interaction, `I just kicked ${count} new accounts! See console log for all users kicked.`);
-    }).catch(console.log);
-}
+      });
+      await db.write();
+    }
 
-// Verifies that the user who sent the command has the designated commanderRole from the config file.
-verifyUser = (id) => {
-    return client.guilds.fetch(config.serverId).then(guild => {
-        return guild.members.fetch(id).then(member => {
-            return member._roles.includes(config.allowedRoleId);
+    if (interaction.commandName === "kick-new-accounts") {
+      iterateThroughMembers(interaction, kickYoungAccount, kickCallback);
+      let p = db.data.find(a => a.id === interaction.guild.id).preferences;
+      p.days = interaction.options.data.find(obj => obj.name === "days").value;
+    } else if (interaction.commandName === "give-roles") {
+      iterateThroughMembers(interaction, assignRole, roleCallback);
+      let p = db.data.find(a => a.id === interaction.guild.id).preferences;
+      p.assignableRoles = interaction.options.data.map(r => {
+        return { name: r.role.name, id: r.value };
+      });
+      await db.write();
+    } else if (interaction.commandName === "get-preferences") {
+      respondToInteraction(
+        interaction,
+        JSON.stringify(
+          db.data.find(a => a.id === interaction.guildId).preferences
+        )
+      );
+    } else if (interaction.commandName === "set-preferences") {
+      let p = db.data.find(a => a.id === interaction.guild.id).preferences;
+      p[interaction.options._group] =
+        interaction.options._subcommand === "enable" ? true : false;
+      await db.write();
+      respondToInteraction(
+        interaction,
+        JSON.stringify(
+          db.data.find(a => a.id === interaction.guild.id).preferences
+        )
+      );
+    }
+  } else {
+    respondToInteraction(
+      interaction,
+      `Only server owners have the ability to use that command...`
+    );
+  }
+});
+
+// When a new user joins your server, check preferences of the server, and do actions as preferences desire.
+client.on("guildMemberAdd", async addedMember => {
+  let guildData = db.data.find(a => a.id === addedMember.guild.id);
+  let preferences = guildData.preferences;
+  if (preferences["auto-kick-new-accounts"]) {
+    var lastWeek = new Date();
+    var pastDate = lastWeek.getDate() - 7;
+    lastWeek.setDate(pastDate);
+    if (addedMember.user.createdTimestamp > lastWeek)
+      addedMember
+        .createDM()
+        .then(dmChannel => {
+          dmChannel.send(
+            `The server you just tried to join has restrictions in place, your account must be older than one week in order to join.`
+          );
+        })
+        .then(() => {
+          addedMember.kick(
+            `Kicked ${addedMember.user.username}, Account created at ${addedMember.user.createdAt}`
+          );
+        });
+
+    console.log(
+      `Kicked new member ${addedMember.user.username} - account created: ${addedMember.user.createdAt}`
+    );
+  }
+  if (preferences["auto-assign-roles"]) {
+    let rolesToAssign = preferences.assignableRoles;
+    if (rolesToAssign) {
+      let randomNumber = Math.floor(Math.random() * rolesToAssign.length);
+      let randomRole = rolesToAssign[randomNumber];
+
+      addedMember
+        .createDM()
+        .then(dmChannel => {
+          dmChannel.send(
+            `The server you just joined assigned you the role: ${randomRole.name}`
+          );
+        })
+        .then(() => {
+          addedMember.roles.add(randomRole.id);
+        });
+    }
+  }
+});
+
+let iterateThroughMembers = (interaction, action, callback) => {
+  let data = { count: 0, roles: {} };
+  interaction.guild.members
+    .fetch()
+    .then(members => {
+      for (const member of members.values()) {
+        data = action(member, interaction, data);
+      }
+      callback(interaction, data);
+    })
+    .catch(console.log);
+};
+
+let assignRole = (member, interaction, data) => {
+  let rolesToAssign = interaction.options.data.map(r => r.role);
+  let randomNumber = Math.floor(Math.random() * rolesToAssign.length);
+  let randomRole = rolesToAssign[randomNumber];
+
+  let userHasRoleAlready = member._roles.some(roleId =>
+    rolesToAssign.find(r => r.id === roleId)
+  );
+  if (!userHasRoleAlready) {
+    if (!member.user.bot) {
+      data.count++;
+      data.roles[randomRole.name] > 0
+        ? data.roles[randomRole.name]++
+        : (data.roles[randomRole.name] = 1);
+      member.createDM().then(dmChannel => {
+        dmChannel
+          .send(
+            `This server owner has assigned you the role: ${randomRole.name}`
+          )
+          .then(() => {
+            member.roles.add(randomRole);
+          });
+      });
+
+      console.log(`Added role: ${randomRole.name} to: ${member.displayName}`);
+    }
+  }
+  return data;
+};
+
+let roleCallback = (interaction, data) => {
+  respondToInteraction(
+    interaction,
+    `Added ${data.count} roles to members with numbers: ${JSON.stringify(
+      data.roles
+    )}`
+  );
+};
+
+let kickYoungAccount = (member, interaction, data) => {
+  var lastWeek = new Date();
+  let dayVal = interaction.options.data.find(obj => obj.name === "days").value;
+  var pastDate = lastWeek.getDate() - dayVal;
+
+  lastWeek.setDate(pastDate);
+
+  if (member.user.createdTimestamp > lastWeek) {
+    data.count++;
+    member.createDM().then(dmChannel => {
+      dmChannel
+        .send(
+          `The server owner has kicked you because your account was created less than ${dayVal} day(s) ago.`
+        )
+        .then(() => {
+          member.kick(
+            `Account is too new - ${member.user.username} : Created at ${member.user.createdAt}`
+          );
         });
     });
-}
+    console.log(
+      `Kicking ${member.user.username} - account created: ${member.user.createdAt}`
+    );
+  }
+  return data;
+};
+
+let kickCallback = (interaction, data) => {
+  respondToInteraction(
+    interaction,
+    `I just kicked ${data.count} new accounts! See Server Settings -> Audit Log for all users kicked, and dates accounts were made.`
+  );
+};
+
+// Verifies that the user who sent the command has the admin permission.
+let verifyUser = interaction => {
+  return interaction.memberPermissions.has("ADMINISTRATOR");
+};
 
 // Responds to each (/) slash command with outcome of the command, if this was triggered by a client event or an error, it logs the outcome to the log channel denoted in config
-respondToInteraction = async (interaction, message, error = null) => {
-    if (!interaction) {
-        const mainServer = await client.guilds.fetch(config.mainServer);
-        const logChannel = await mainServer.channels.fetch(config.logChannelId);
-        logChannel.send(message);
-    } else {
+let respondToInteraction = async (interaction, message, error = null) => {
+  let url = `https://discord.com/api/v8/interactions/${interaction.id}/${interaction.token}/callback`;
 
-        let url = `https://discord.com/api/v8/interactions/${interaction.id}/${interaction.token}/callback`
-
-        let json = {
-            "type": 4,
-            "data": {
-                "content": message
-            }
-        }
-        
-        axios.post(url, json);
+  let json = {
+    type: 4,
+    data: {
+      content: message
     }
+  };
 
-    if (error) {
-        console.log(error);
-    }
+  axios.post(url, json);
 
-    triggeredByIntention = false;
-}
-
+  if (error) {
+    console.log(error);
+  }
+};
 
 client.login(config.token);
