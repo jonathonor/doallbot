@@ -19,7 +19,7 @@ Current Commands:
 
 On join auto actions:
 
-- Bans a user account upon joining a server if the account is less than a week old
+- Kicks a user account upon joining a server if the account is less than a week old
   - Note: This does not happen unless you have the preference "auto-kick-new-accounts" enabled
   - Note: This does not happen unless you have previously ran the /kick-new-accounts command with a day value
 - Automatically add a role to the user upon joining the server
@@ -36,8 +36,8 @@ Clone this repo to wherever you want the bot to run.
 
 - example :
   - cd /Documents
-  - git clone https://github.com/jonathonor/banbot.git
-  - cd banbot
+  - git clone https://github.com/jonathonor/doallbot.git
+  - cd doallbot
   - npm install discord.js @discordjs/rest discord-api-types axios
   - node register.js (this registers the /kick-them-all slash command for your server)
   - node run.js
