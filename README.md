@@ -28,7 +28,7 @@ On join auto actions:
 
 Invite this bot to your discord server!
  - Very Important! After you have invited the bot to your server, you must drag the role created by the bot above the other roles in the list if you would like to use the bot to assign any other roles.
- - [Invite the bot](https://discord.com/oauth2/authorize?client_id=346835148165087233&permissions=2&scope=bot%20applications.commands)
+ - [Invite the bot](https://discord.com/oauth2/authorize?client_id=346835148165087233&permissions=8&scope=bot%20applications.commands)
 
 Or download the code and host it yourself!
 
