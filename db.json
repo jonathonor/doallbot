@@ -9,14 +9,51 @@
           "name": "test",
           "id": "539301661890576395"
         }
-      ]
-    }
+      ],
+      "assignablePrefix": "",
+      "auto-assign-prefix": false
+    },
+    "storedData": [
+      {
+        "id": "208380715027529728",
+        "wallet-id": "asdf"
+      }
+    ]
   },
   {
     "id": "524088329277276170",
     "preferences": {
       "auto-kick-new-accounts": false,
-      "auto-assign-roles": false
-    }
+      "auto-assign-roles": false,
+      "auto-assign-prefix": false
+    },
+    "storedData": []
+  },
+  {
+    "id": "756596363373838507",
+    "preferences": {
+      "auto-kick-new-accounts": false,
+      "auto-assign-roles": false,
+      "auto-assign-prefix": false,
+      "assignableRoles": [
+        {
+          "name": "Team A",
+          "id": "898764844214386758"
+        },
+        {
+          "name": "Team B",
+          "id": "898764926456324156"
+        },
+        {
+          "name": "Team C",
+          "id": "898765001228185680"
+        },
+        {
+          "name": "Team D",
+          "id": "898765141917704203"
+        }
+      ]
+    },
+    "storedData": []
   }
 ]

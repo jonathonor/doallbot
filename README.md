@@ -6,12 +6,15 @@ Preferences: (automatically set to false when the bot joins your server)
 
 - auto-assign-roles
 - auto-kick-new-accounts
+- auto-assign-prefix
 
 Current Commands:
 - /kick-new-accounts - Instantly removes all users from your server whose account is newer than todays date minus the number of days you say.
   - Note: This number of days is stored, and used to automatically kick users who join your server whose account is younger than the days specified (they are sent a message with reasoning why they were kicked)
 - /give-roles - gives everyone in the server one of the random roles you pass into the command
   - Note: The roles you send in this command are stored, and are assigned randomly to new members upon join if you have the auto-assign-roles feature enabled
+- /give-prefixes - gives everyone in the server the prefix you specify
+  - Note: The prefix you send in this command is stored, and is assigned to new members upon join if you have the auto-assign-prefix feature enabled
 - /set-preferences auto-assign-roles enable - tells the bot to auto assign a role to any new member that joins
 - /set-preferences auto-assign-roles disable - tells the bot NOT to auto assign a role to new members upon join
 - /set-preferences auto-kick-new-accounts enable - tells the bot to kicks any members that join the server whose accounts are newer than the amount of days old you have set
